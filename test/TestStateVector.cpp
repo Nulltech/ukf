@@ -55,16 +55,18 @@ TEST(StateVectorTest, Arithmetic) {
 TEST(StateVectorTest, DefaultParameters) {
     MyStateVector test_state;
 
-    EXPECT_FLOAT_EQ(1.0, UKF::Parameters::AlphaSquared<MyStateVector>);
-    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::Beta<MyStateVector>);
-    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<MyStateVector>);
-    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Lambda<MyStateVector>);
-    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<MyStateVector>);
-    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WM0<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WC0<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WMI<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WCI<MyStateVector>);
+    // extra value function required to match StateVector.h
+    // MOD
+    EXPECT_FLOAT_EQ(1.0, UKF::Parameters::AlphaSquared<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::Beta<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Lambda<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WM0<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WC0<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WMI<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WCI<MyStateVector>::value());
 }
 
 using AlternateStateVector = UKF::StateVector<
@@ -73,34 +75,47 @@ using AlternateStateVector = UKF::StateVector<
     UKF::Field<Acceleration, UKF::Vector<3>>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<AlternateStateVector> = 1e-6;
-template <> constexpr real_t UKF::Parameters::Beta<AlternateStateVector> = 2.0;
-template <> constexpr real_t UKF::Parameters::Kappa<AlternateStateVector> = 3.0;
+// specialization class is required
+// extra namespace is needed due to a possible g++ bug
+namespace UKF
+{
+    namespace Parameters
+    {
+        template<> struct AlphaSquared<AlternateStateVector> { static constexpr real_t value(){ return 1e-6; } };
+        template<> struct Beta<AlternateStateVector> { static constexpr real_t value(){ return 2.0; } };
+        template<> struct Kappa<AlternateStateVector> { static constexpr real_t value(){ return 3.0; } };                
+    }
+}
+
+// MOD
+//template <> constexpr real_t UKF::Parameters::AlphaSquared<AlternateStateVector> = 1e-6;
+//template <> constexpr real_t UKF::Parameters::Beta<AlternateStateVector> = 2.0;
+//template <> constexpr real_t UKF::Parameters::Kappa<AlternateStateVector> = 3.0;
 
 TEST(StateVectorTest, CustomParameters) {
     AlternateStateVector test_state;
 
-    EXPECT_FLOAT_EQ(1e-6, UKF::Parameters::AlphaSquared<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::Beta<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(12e-6 - 9, UKF::Parameters::Lambda<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(-749999, UKF::Parameters::Sigma_WM0<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(-749996, UKF::Parameters::Sigma_WC0<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(41666.667, UKF::Parameters::Sigma_WMI<AlternateStateVector>);
-    EXPECT_FLOAT_EQ(41666.667, UKF::Parameters::Sigma_WCI<AlternateStateVector>);
+    EXPECT_FLOAT_EQ(1e-6, UKF::Parameters::AlphaSquared<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::Beta<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(12e-6 - 9, UKF::Parameters::Lambda<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(-749999, UKF::Parameters::Sigma_WM0<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(-749996, UKF::Parameters::Sigma_WC0<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(41666.667, UKF::Parameters::Sigma_WMI<AlternateStateVector>::value());
+    EXPECT_FLOAT_EQ(41666.667, UKF::Parameters::Sigma_WCI<AlternateStateVector>::value());
 
-    EXPECT_FLOAT_EQ(1.0, UKF::Parameters::AlphaSquared<MyStateVector>);
-    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::Beta<MyStateVector>);
-    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<MyStateVector>);
-    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Lambda<MyStateVector>);
-    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<MyStateVector>);
-    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WM0<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WC0<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WMI<MyStateVector>);
-    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WCI<MyStateVector>);
+    EXPECT_FLOAT_EQ(1.0, UKF::Parameters::AlphaSquared<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::Beta<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Kappa<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(3.0, UKF::Parameters::Lambda<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(0.0, UKF::Parameters::MRP_A<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(2.0, UKF::Parameters::MRP_F<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WM0<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 4.0, UKF::Parameters::Sigma_WC0<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WMI<MyStateVector>::value());
+    EXPECT_FLOAT_EQ(1.0 / 24.0, UKF::Parameters::Sigma_WCI<MyStateVector>::value());
 }
 
 TEST(StateVectorTest, SigmaPointGeneration) {
@@ -127,7 +142,7 @@ TEST(StateVectorTest, SigmaPointGeneration) {
                             1,      1,      1,      1,      1,      1,    0.5,    0.5,    0.5,      1,      1,      1,      1,      1,      1,    0.5,    0.5,    0.5,      1,
                            10,     10,     10,     10,     10,     10,     10,     10,     10, 13.464,     10,     10,     10,     10,     10,     10,     10,     10,  6.536;
     sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
 
     EXPECT_VECTOR_EQ(target_sigma_points.col(0),  sigma_points.col(0));
     EXPECT_VECTOR_EQ(target_sigma_points.col(1),  sigma_points.col(1));
@@ -162,7 +177,7 @@ TEST(StateVectorTest, SigmaPointMean) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
 
     EXPECT_VECTOR_EQ(test_state, MyStateVector::calculate_sigma_point_mean(sigma_points));
 }
@@ -179,7 +194,7 @@ TEST(StateVectorTest, SigmaPointDeltas) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
     MyStateVector test_mean = MyStateVector::calculate_sigma_point_mean(sigma_points);
     MyStateVector::SigmaPointDeltas sigma_point_deltas, target_sigma_point_deltas;
 
@@ -227,7 +242,7 @@ TEST(StateVectorTest, SigmaPointCovariance) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
     MyStateVector test_mean = MyStateVector::calculate_sigma_point_mean(sigma_points);
     MyStateVector::SigmaPointDeltas sigma_point_deltas = test_mean.calculate_sigma_point_deltas(sigma_points);
     MyStateVector::CovarianceMatrix calculated_covariance = MyStateVector::calculate_sigma_point_covariance(sigma_point_deltas);
@@ -254,7 +269,7 @@ TEST(StateVectorTest, SmallAlphaSigmaPoints) {
     covariance.diagonal() << 1000.0, 1000.0, 1000.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     AlternateStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (AlternateStateVector::covariance_size() + UKF::Parameters::Lambda<AlternateStateVector>)).llt().matrixL());
+        (AlternateStateVector::covariance_size() + UKF::Parameters::Lambda<AlternateStateVector>::value())).llt().matrixL());
     AlternateStateVector test_mean = AlternateStateVector::calculate_sigma_point_mean(sigma_points);
     AlternateStateVector::SigmaPointDeltas sigma_point_deltas = test_mean.calculate_sigma_point_deltas(sigma_points);
     AlternateStateVector::CovarianceMatrix calculated_covariance = AlternateStateVector::calculate_sigma_point_covariance(sigma_point_deltas);
@@ -284,29 +299,34 @@ using ProcessModelTestStateVector = UKF::StateVector<
     UKF::Field<Velocity, UKF::Vector<3>>
 >;
 
-template <> template <>
-ProcessModelTestStateVector ProcessModelTestStateVector::derivative<>() const {
-    ProcessModelTestStateVector temp;
-    /* Position derivative. */
-    temp.set_field<Position>(get_field<Velocity>());
+// specialization class is required
+// extra namespace is needed due to a possible g++ bug
+namespace UKF
+{
+    template <> template <>
+    ProcessModelTestStateVector ProcessModelTestStateVector::derivative<>() const {
+        ProcessModelTestStateVector temp;
+        /* Position derivative. */
+        temp.set_field<Position>(get_field<Velocity>());
 
-    /* Velocity derivative. */
-    temp.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
+        /* Velocity derivative. */
+        temp.set_field<Velocity>(UKF::Vector<3>(0, 0, 0));
 
-    return temp;
-}
+        return temp;
+    }
 
-template <> template <>
-ProcessModelTestStateVector ProcessModelTestStateVector::derivative<UKF::Vector<3>>(
-        const UKF::Vector<3>& acceleration) const {
-    ProcessModelTestStateVector temp;
-    /* Position derivative. */
-    temp.set_field<Position>(get_field<Velocity>());
+    template <> template <>
+    ProcessModelTestStateVector ProcessModelTestStateVector::derivative<UKF::Vector<3>>(
+            const UKF::Vector<3>& acceleration) const {
+        ProcessModelTestStateVector temp;
+        /* Position derivative. */
+        temp.set_field<Position>(get_field<Velocity>());
 
-    /* Velocity derivative. */
-    temp.set_field<Velocity>(acceleration);
+        /* Velocity derivative. */
+        temp.set_field<Velocity>(acceleration);
 
-    return temp;
+        return temp;
+    }
 }
 
 TEST(StateVectorTest, ProcessModel) {

@@ -33,7 +33,8 @@ ADD_EXECUTABLE(unittest
     TestFixedMeasurementVector.cpp
     TestDynamicMeasurementVector.cpp
     TestCore.cpp
-    TestSquareRootCore.cpp)
+    TestSquareRootCore.cpp
+)
 
 # Create dependency of test on googletest
 ADD_DEPENDENCIES(unittest googletest eigen3)

@@ -96,11 +96,11 @@ public:
         the LLT decomposition of the scaled covariance matrix.
         */
         assert(((covariance * (StateVectorType::covariance_size() +
-            Parameters::Lambda<StateVectorType>)).llt().info() == Eigen::Success)
+            Parameters::Lambda<StateVectorType>::value())).llt().info() == Eigen::Success)
             && "Covariance matrix is not positive definite");
 
         sigma_points = state.calculate_sigma_point_distribution(((covariance + process_noise_covariance) *
-            (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>)).llt().matrixL());
+            (StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>::value())).llt().matrixL());
 
         /* Propagate the sigma points through the process model. */
         for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {
@@ -157,10 +157,10 @@ public:
         CrossCorrelation cross_correlation = CrossCorrelation::Zero(
             StateVectorType::covariance_size(), innovation.size());
         for(std::size_t i = 1; i < StateVectorType::num_sigma(); i++) {
-            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType> *
+            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType>::value() *
                 (w_prime.col(i) * z_prime.col(i).transpose());
         }
-        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType> *
+        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType>::value() *
             (w_prime.col(0) * z_prime.col(0).transpose());
 
         /*
@@ -247,7 +247,7 @@ public:
     template <typename... U>
     void a_priori_step(real_t delta, const U&... input) {
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
-            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
+            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>::value()));
 
         /* Propagate the sigma points through the process model. */
         for(std::size_t i = 0; i < StateVectorType::num_sigma(); i++) {
@@ -269,7 +269,7 @@ public:
 
         AugmentedSigmaPointDeltas augmented_w_prime;
         augmented_w_prime <<
-            std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * w_prime.rightCols(StateVectorType::num_sigma() - 1),
+            std::sqrt(Parameters::Sigma_WCI<StateVectorType>::value()) * w_prime.rightCols(StateVectorType::num_sigma() - 1),
             process_noise_root_covariance;
 
         /*
@@ -284,12 +284,12 @@ public:
         central sigma point delta.
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
-            root_covariance, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+            root_covariance, w_prime.col(0), Parameters::Sigma_WC0<StateVectorType>::value());
         root_covariance.transposeInPlace();
 
         /* Recalculate the sigma points using the a priori covariance. */
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
-            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
+            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>::value()));
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
     }
 
@@ -331,7 +331,7 @@ public:
 
         AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
-            std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
+            std::sqrt(Parameters::Sigma_WCI<StateVectorType>::value()) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
             z.template calculate_measurement_root_covariance(z_pred);
 
@@ -346,7 +346,7 @@ public:
         matrix using the central innovation delta.
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
-            innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+            innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>::value());
         innovation_root_covariance.transposeInPlace();
     }
 
@@ -363,10 +363,10 @@ public:
         CrossCorrelation cross_correlation = CrossCorrelation::Zero(
             StateVectorType::covariance_size(), innovation.size());
         for(std::size_t i = 1; i < StateVectorType::num_sigma(); i++) {
-            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType> *
+            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType>::value() *
                 (w_prime.col(i) * z_prime.col(i).transpose());
         }
-        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType> *
+        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType>::value() *
             (w_prime.col(0) * z_prime.col(0).transpose());
 
         /*
@@ -469,7 +469,7 @@ public:
         root_covariance.diagonal() = (S_diag.cwiseProduct(S_diag) + R_diag.cwiseProduct(R_diag)).cwiseSqrt();
 
         sigma_points = state.calculate_sigma_point_distribution(root_covariance *
-            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>));
+            std::sqrt(StateVectorType::covariance_size() + Parameters::Lambda<StateVectorType>::value()));
 
         /* Calculate the sigma point deltas. */
         w_prime = state.calculate_sigma_point_deltas(sigma_points);
@@ -513,7 +513,7 @@ public:
 
         AugmentedInnovationDeltas augmented_z_prime(z.size(), StateVectorType::num_sigma() - 1 + z.size());
         augmented_z_prime.block(0, 0, z.size(), StateVectorType::num_sigma() - 1) =
-            std::sqrt(Parameters::Sigma_WCI<StateVectorType>) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
+            std::sqrt(Parameters::Sigma_WCI<StateVectorType>::value()) * z_prime.rightCols(StateVectorType::num_sigma() - 1);
         augmented_z_prime.block(0, StateVectorType::num_sigma() - 1, z.size(), z.size()) =
             z.template calculate_measurement_root_covariance(z_pred);
 
@@ -528,7 +528,7 @@ public:
         matrix using the central innovation delta.
         */
         Eigen::internal::llt_inplace<real_t, Eigen::Upper>::rankUpdate(
-            innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>);
+            innovation_root_covariance, z_prime.col(0), Parameters::Sigma_WC0<StateVectorType>::value());
         innovation_root_covariance.transposeInPlace();
     }
 
@@ -545,10 +545,10 @@ public:
         CrossCorrelation cross_correlation = CrossCorrelation::Zero(
             StateVectorType::covariance_size(), innovation.size());
         for(std::size_t i = 1; i < StateVectorType::num_sigma(); i++) {
-            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType> *
+            cross_correlation.noalias() += Parameters::Sigma_WCI<StateVectorType>::value() *
                 (w_prime.col(i) * z_prime.col(i).transpose());
         }
-        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType> *
+        cross_correlation.noalias() += Parameters::Sigma_WC0<StateVectorType>::value() *
             (w_prime.col(0) * z_prime.col(0).transpose());
 
         /*

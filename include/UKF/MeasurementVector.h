@@ -51,9 +51,9 @@ namespace UKF {
             axis = Vector<3>(-v1(2), v1(1), v1(0));
         }
 
-        return Parameters::MRP_F<T> * axis /
-            (std::abs(Parameters::MRP_A<T> + q_w) > std::numeric_limits<real_t>::epsilon() ?
-            Parameters::MRP_A<T> + q_w : std::numeric_limits<real_t>::epsilon());
+        return Parameters::MRP_F<T>::value() * axis /
+            (std::abs(Parameters::MRP_A<T>::value() + q_w) > std::numeric_limits<real_t>::epsilon() ?
+            Parameters::MRP_A<T>::value() + q_w : std::numeric_limits<real_t>::epsilon());
     }
 
     /*
@@ -96,7 +96,7 @@ namespace UKF {
             c123(1) = -c123(1);
         }
 
-        real_t c4 = Parameters::MRP_A<T> + q_w;
+        real_t c4 = Parameters::MRP_A<T>::value() + q_w;
         if(std::abs(c4) < std::numeric_limits<real_t>::epsilon()) {
             c4 = std::numeric_limits<real_t>::epsilon();
         }
@@ -107,7 +107,7 @@ namespace UKF {
         j <<            -c123(0)*c765(0)/c4_2, -v1(2)/c4 - c123(0)*c765(1)/c4_2,  v1(1)/c4 - c123(0)*c765(2)/c4_2,
               v1(2)/c4 + c123(1)*c765(0)/c4_2,             c123(1)*c765(1)/c4_2, -v1(0)/c4 + c123(1)*c765(2)/c4_2,
              -v1(1)/c4 - c123(2)*c765(0)/c4_2,  v1(0)/c4 - c123(2)*c765(1)/c4_2,            -c123(2)*c765(2)/c4_2;
-        j *= Parameters::MRP_F<T>;
+        j *= Parameters::MRP_F<T>::value();
 
         return j;
     }
@@ -214,9 +214,9 @@ public:
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero();
         for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
+            cov.noalias() += Parameters::Sigma_WCI<S>::value() * (z_prime.col(i) * z_prime.col(i).transpose());
         }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() += Parameters::Sigma_WC0<S>::value() * (z_prime.col(0) * z_prime.col(0).transpose());
 
         return cov;
     }
@@ -295,7 +295,7 @@ private:
     static void calculate_field_measurements(FixedMeasurementVector& expected, const S& state, U&& input) {
         constexpr std::size_t len = std::tuple_size<typename std::remove_reference<U>::type>::value;
 
-        expected.template segment<Detail::StateVectorDimension<typename T::type>>(
+        expected.template segment<Detail::StateVectorDimension<typename T::type>::value()>(
             Detail::get_field_offset<0, Fields...>(T::key)) << expected_measurement_helper<S, T::key, U>(
                 state, std::forward<U>(input), std::make_index_sequence<len>());
     }
@@ -311,10 +311,10 @@ private:
     measurement vector.
     */
     template <typename T>
-    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_covariance(
+    static Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> field_covariance(
             const T& p, const T& z_pred, const T& z) {
-        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
-            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> temp =
+            Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()>::Zero();
         temp.diagonal() << p;
         return temp;
     }
@@ -331,7 +331,7 @@ private:
 
     template <typename T>
     void calculate_field_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
-        P.template block<Detail::CovarianceDimension<typename T::type>, Detail::CovarianceDimension<typename T::type>>(
+        P.template block<Detail::CovarianceDimension<typename T::type>::value(), Detail::CovarianceDimension<typename T::type>::value()>(
             Detail::get_field_covariance_offset<0, Fields...>(T::key),
             Detail::get_field_covariance_offset<0, Fields...>(T::key)) = field_covariance(
                 measurement_covariance.template get_field<T::key>(),
@@ -349,10 +349,10 @@ private:
     the measurement vector.
     */
     template <typename T>
-    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
+    static Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> field_root_covariance(
             const T& p, const T& z_pred, const T& z) {
-        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
-            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> temp =
+            Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()>::Zero();
         temp.diagonal() << p;
         return temp;
     }
@@ -373,7 +373,7 @@ private:
 
     template <typename T>
     void calculate_field_root_covariance(CovarianceMatrix& P, const FixedMeasurementVector& z_pred) const {
-        P.template block<Detail::CovarianceDimension<typename T::type>, Detail::CovarianceDimension<typename T::type>>(
+        P.template block<Detail::CovarianceDimension<typename T::type>::value(), Detail::CovarianceDimension<typename T::type>::value()>(
             Detail::get_field_covariance_offset<0, Fields...>(T::key),
             Detail::get_field_covariance_offset<0, Fields...>(T::key)) = field_root_covariance(
                 measurement_root_covariance.template get_field<T::key>(),
@@ -391,16 +391,26 @@ private:
     distribution. Note that sigma_point_mean takes a dummy argument so that
     the overrides work properly.
     */
-    template <typename S, typename T>
-    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
-        return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
-            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
-    }
+
+    // FIXME: OVERLOAD AMBIGUITY SOLVED SPECIFING THE BEHAVIOUR FOR VECTOR3
+    // template <typename S, typename T>
+    // static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>::value(), S::num_sigma()>& sigma, const T& field)
+    // {
+    //     return Parameters::Sigma_WMI<S>::value()*sigma.template block<Detail::StateVectorDimension<T>::value(), S::num_sigma()-1>(
+    //         0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>::value()*sigma.col(0);
+    // }
+
+    template <typename S>
+    static Vector<3> sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const Vector<3>& field) 
+    {
+        return Parameters::Sigma_WMI<S>::value()*sigma.template block<3, S::num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>::value()*sigma.col(0);
+    }    
 
     template <typename S>
     static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
-        return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
-            + Parameters::Sigma_WM0<S>*sigma(0);
+        return Parameters::Sigma_WMI<S>::value()*sigma.template segment<S::num_sigma()-1>(1).sum()
+            + Parameters::Sigma_WM0<S>::value()*sigma(0);
     }
 
     /*
@@ -414,7 +424,7 @@ private:
         Vector<3> temp = Vector<3>::Zero();
 
         for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
-            temp += Parameters::Sigma_WMI<S>*Detail::calculate_rotation_vector<FixedMeasurementVector>(
+            temp += Parameters::Sigma_WMI<S>::value()*Detail::calculate_rotation_vector<FixedMeasurementVector>(
                 sigma.col(i+1), sigma.col(0));
         }
 
@@ -423,9 +433,9 @@ private:
 
     template <typename S, typename T>
     void calculate_field_mean(const SigmaPointDistribution<S>& Z, FixedMeasurementVector& mean) const {
-        mean.template segment<Detail::StateVectorDimension<typename T::type>>(
+        mean.template segment<Detail::StateVectorDimension<typename T::type>::value()>(
             Detail::get_field_offset<0, Fields...>(T::key)) << sigma_point_mean<S>(
-                Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                Z.template block<Detail::StateVectorDimension<typename T::type>::value(), S::num_sigma()>(
                     Detail::get_field_offset<0, Fields...>(T::key), 0), typename T::type());
     }
 
@@ -464,11 +474,18 @@ private:
     Private functions for calculating the delta vectors between each sigma
     point and the mean.
     */
-    template <typename S, typename T>
-    static Matrix<Detail::CovarianceDimension<T>, S::num_sigma()> sigma_point_deltas(
-            const T& mean, const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& Z) {
+
+    // FIXME: OVERLOAD AMBIGUITY SOLVED SPECIFING THE BEHAVIOUR FOR VECTOR3
+    // template <typename S, typename T>
+    // static Matrix<Detail::CovarianceDimension<T>::value(), S::num_sigma()> sigma_point_deltas(
+    //         const T& mean, const Matrix<Detail::StateVectorDimension<T>::value(), S::num_sigma()>& Z) {
+    //     return Z.colwise() - mean;
+    // }
+
+    template <typename S>
+    static Matrix<3, S::num_sigma()> sigma_point_deltas(const Vector<3>& mean, const Matrix<3, S::num_sigma()>& Z) {
         return Z.colwise() - mean;
-    }
+    }    
 
     template <typename S>
     static Matrix<1, S::num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, S::num_sigma()>& Z) {
@@ -488,9 +505,9 @@ private:
 
     template <typename S, typename T>
     void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
-        z_prime.template block<Detail::CovarianceDimension<typename T::type>, S::num_sigma()>(
+        z_prime.template block<Detail::CovarianceDimension<typename T::type>::value(), S::num_sigma()>(
             Detail::get_field_covariance_offset<0, Fields...>(T::key), 0) = sigma_point_deltas<S>(
-                get_field<T::key>(), Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+                get_field<T::key>(), Z.template block<Detail::StateVectorDimension<typename T::type>::value(), S::num_sigma()>(
                     Detail::get_field_offset<0, Fields...>(T::key), 0));
     }
 
@@ -622,9 +639,9 @@ public:
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero(Base::template size(), Base::template size());
         for(std::size_t i = 1; i < S::num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<S> * (z_prime.col(i) * z_prime.col(i).transpose());
+            cov.noalias() += Parameters::Sigma_WCI<S>::value() * (z_prime.col(i) * z_prime.col(i).transpose());
         }
-        cov.noalias() += Parameters::Sigma_WC0<S> * (z_prime.col(0) * z_prime.col(0).transpose());
+        cov.noalias() += Parameters::Sigma_WC0<S>::value() * (z_prime.col(0) * z_prime.col(0).transpose());
 
         return cov;
     }
@@ -718,7 +735,7 @@ private:
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            expected.template segment<Detail::StateVectorDimension<typename T::type>>(offset) <<
+            expected.template segment<Detail::StateVectorDimension<typename T::type>::value()>(offset) <<
                 expected_measurement_helper<S, T::key, U>(state, std::forward<U>(input),
                     std::make_index_sequence<len>());
         } else {
@@ -737,10 +754,10 @@ private:
     fields.
     */
     template <typename T>
-    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_covariance(
+    static Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> field_covariance(
             const T& p, const T& z_pred, const T& z) {
-        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
-            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> temp =
+            Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()>::Zero();
         temp.diagonal() << p;
         return temp;
     }
@@ -762,8 +779,8 @@ private:
         */
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            P.template block<Detail::CovarianceDimension<typename T::type>,
-                Detail::CovarianceDimension<typename T::type>>(offset, offset) =
+            P.template block<Detail::CovarianceDimension<typename T::type>::value(),
+                Detail::CovarianceDimension<typename T::type>::value()>(offset, offset) =
                 field_covariance(measurement_covariance.template get_field<T::key>(),
                     z_pred.get_field<T::key>(), get_field<T::key>());
         } else {
@@ -782,10 +799,10 @@ private:
     fields.
     */
     template <typename T>
-    static Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> field_root_covariance(
+    static Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> field_root_covariance(
             const T& p, const T& z_pred, const T& z) {
-        Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>> temp =
-            Matrix<Detail::CovarianceDimension<T>, Detail::CovarianceDimension<T>>::Zero();
+        Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()> temp =
+            Matrix<Detail::CovarianceDimension<T>::value(), Detail::CovarianceDimension<T>::value()>::Zero();
         temp.diagonal() << p;
         return temp;
     }
@@ -799,8 +816,8 @@ private:
     void calculate_field_root_covariance(CovarianceMatrix& P, const DynamicMeasurementVector& z_pred) const {
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            P.template block<Detail::CovarianceDimension<typename T::type>,
-                Detail::CovarianceDimension<typename T::type>>(offset, offset) =
+            P.template block<Detail::CovarianceDimension<typename T::type>::value(),
+                Detail::CovarianceDimension<typename T::type>::value()>(offset, offset) =
                 field_root_covariance(measurement_root_covariance.template get_field<T::key>(),
                     z_pred.get_field<T::key>(), get_field<T::key>());
         } else {
@@ -819,16 +836,24 @@ private:
     distribution. Note that sigma_point_mean takes a dummy argument so that
     the overrides work properly.
     */
-    template <typename S, typename T>
-    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& sigma, const T& field) {
-        return Parameters::Sigma_WMI<S>*sigma.template block<Detail::StateVectorDimension<T>, S::num_sigma()-1>(
-            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>*sigma.col(0);
-    }
+
+    // FIXME: OVERLOAD AMBIGUITY SOLVED SPECIFING THE BEHAVIOUR FOR VECTOR3
+    // template <typename S, typename T>
+    // static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>::value(), S::num_sigma()>& sigma, const T& field) {
+    //     return Parameters::Sigma_WMI<S>::value()*sigma.template block<Detail::StateVectorDimension<T>::value(), S::num_sigma()-1>(
+    //         0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>::value()*sigma.col(0);
+    // }
+
+    template <typename S>
+    static Vector<3> sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const Vector<3>& field) {
+        return Parameters::Sigma_WMI<S>::value()*sigma.template block<3, S::num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<S>::value()*sigma.col(0);
+    }    
 
     template <typename S>
     static real_t sigma_point_mean(const Matrix<1, S::num_sigma()>& sigma, const real_t& field) {
-        return Parameters::Sigma_WMI<S>*sigma.template segment<S::num_sigma()-1>(1).sum()
-            + Parameters::Sigma_WM0<S>*sigma(0);
+        return Parameters::Sigma_WMI<S>::value()*sigma.template segment<S::num_sigma()-1>(1).sum()
+            + Parameters::Sigma_WM0<S>::value()*sigma(0);
     }
 
     /*
@@ -837,12 +862,13 @@ private:
     points. Then, calculate the mean of these rotations and apply it to the
     central sigma point.
     */
+
     template <typename S>
     static FieldVector sigma_point_mean(const Matrix<3, S::num_sigma()>& sigma, const FieldVector& field) {
         Vector<3> temp = Vector<3>::Zero();
 
         for(std::size_t i = 0; i < S::num_sigma()-1; i++) {
-            temp += Parameters::Sigma_WMI<S>*Detail::calculate_rotation_vector<DynamicMeasurementVector>(
+            temp += Parameters::Sigma_WMI<S>::value()*Detail::calculate_rotation_vector<DynamicMeasurementVector>(
                 sigma.col(i+1), sigma.col(0));
         }
 
@@ -853,8 +879,8 @@ private:
     void calculate_field_mean(const SigmaPointDistribution<S>& Z, DynamicMeasurementVector& mean) const {
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            mean.template segment<Detail::StateVectorDimension<typename T::type>>(offset) << sigma_point_mean<S>(
-                Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(
+            mean.template segment<Detail::StateVectorDimension<typename T::type>::value()>(offset) << sigma_point_mean<S>(
+                Z.template block<Detail::StateVectorDimension<typename T::type>::value(), S::num_sigma()>(
                 offset, 0), typename T::type());
         } else {
             return;
@@ -901,11 +927,18 @@ private:
     Private functions for calculating the delta vectors between each sigma
     point and the mean.
     */
-    template <typename S, typename T>
-    static Matrix<Detail::CovarianceDimension<T>, S::num_sigma()> sigma_point_deltas(
-            const T& mean, const Matrix<Detail::StateVectorDimension<T>, S::num_sigma()>& Z) {
+
+    // FIXME: OVERLOAD AMBIGUITY SOLVED SPECIFING THE BEHAVIOUR FOR VECTOR3
+    // template <typename S, typename T>
+    // static Matrix<Detail::CovarianceDimension<T>::value(), S::num_sigma()> sigma_point_deltas(
+    //         const T& mean, const Matrix<Detail::StateVectorDimension<T>::value(), S::num_sigma()>& Z) {
+    //     return Z.colwise() - mean;
+    // }
+
+    template <typename S>
+    static Matrix<3, S::num_sigma()> sigma_point_deltas(const Vector<3>& mean, const Matrix<3, S::num_sigma()>& Z) {
         return Z.colwise() - mean;
-    }
+    }    
 
     template <typename S>
     static Matrix<1, S::num_sigma()> sigma_point_deltas(real_t mean, const Matrix<1, S::num_sigma()>& Z) {
@@ -927,9 +960,9 @@ private:
     void calculate_field_deltas(const SigmaPointDistribution<S>& Z, SigmaPointDeltas<S>& z_prime) const {
         std::size_t offset = std::get<Detail::get_field_order<0, Fields...>(T::key)>(field_offsets);
         if(offset != std::numeric_limits<std::size_t>::max()) {
-            z_prime.template block<Detail::CovarianceDimension<typename T::type>, S::num_sigma()>(offset, 0) =
+            z_prime.template block<Detail::CovarianceDimension<typename T::type>::value(), S::num_sigma()>(offset, 0) =
                 sigma_point_deltas<S>(get_field<T::key>(), 
-                    Z.template block<Detail::StateVectorDimension<typename T::type>, S::num_sigma()>(offset, 0));
+                    Z.template block<Detail::StateVectorDimension<typename T::type>::value(), S::num_sigma()>(offset, 0));
         } else {
             return;
         }

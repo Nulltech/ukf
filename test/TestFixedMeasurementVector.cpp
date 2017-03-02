@@ -141,34 +141,40 @@ using MyStateVector = UKF::StateVector<
 Define measurement model to be used in tests. NOTE: These are just for
 testing, don't expect them to make any physical sense whatsoever.
 */
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Accelerometer>(const MyStateVector& state) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
-}
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Gyroscope>(const MyStateVector& state) {
-    return state.get_field<AngularVelocity>();
-}
+// specialization class is required
+// extra namespace is needed due to a possible g++ bug
+namespace UKF
+{
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Accelerometer>(const MyStateVector& state) {
+        return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
+    }
 
-template <> template <>
-real_t MyMeasurementVector::expected_measurement
-<MyStateVector, StaticPressure>(const MyStateVector& state) {
-    return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
-}
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Gyroscope>(const MyStateVector& state) {
+        return state.get_field<AngularVelocity>();
+    }
 
-template <> template <>
-real_t MyMeasurementVector::expected_measurement
-<MyStateVector, DynamicPressure>(const MyStateVector& state) {
-    return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
-}
+    template <> template <>
+    real_t MyMeasurementVector::expected_measurement
+    <MyStateVector, StaticPressure>(const MyStateVector& state) {
+        return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
+    }
 
-template <> template <>
-UKF::FieldVector MyMeasurementVector::expected_measurement
-<MyStateVector, Magnetometer>(const MyStateVector& state) {
-    return state.get_field<Attitude>() * UKF::FieldVector(0.45, 0, 0);
+    template <> template <>
+    real_t MyMeasurementVector::expected_measurement
+    <MyStateVector, DynamicPressure>(const MyStateVector& state) {
+        return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
+    }
+
+    template <> template <>
+    UKF::FieldVector MyMeasurementVector::expected_measurement
+    <MyStateVector, Magnetometer>(const MyStateVector& state) {
+        return state.get_field<Attitude>() * UKF::FieldVector(0.45, 0, 0);
+    }
 }
 
 /*
@@ -176,34 +182,40 @@ These versions of the predicted measurement functions have non-state inputs.
 This could be used to add predicted kinematic acceleration by feeding control
 inputs into a dynamics model, for example.
 */
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + input;
-}
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
-    return state.get_field<AngularVelocity>();
-}
+// specialization class is required
+// extra namespace is needed due to a possible g++ bug
+namespace UKF
+{
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+        return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + input;
+    }
 
-template <> template <>
-real_t MyMeasurementVector::expected_measurement
-<MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
-    return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
-}
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+        return state.get_field<AngularVelocity>();
+    }
 
-template <> template <>
-real_t MyMeasurementVector::expected_measurement
-<MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
-    return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
-}
+    template <> template <>
+    real_t MyMeasurementVector::expected_measurement
+    <MyStateVector, StaticPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+        return 101.3 - 1.2*(state.get_field<Altitude>() / 100.0);
+    }
 
-template <> template <>
-UKF::FieldVector MyMeasurementVector::expected_measurement
-<MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
-    return state.get_field<Attitude>() * UKF::FieldVector(0.45, 0, 0) + input;
+    template <> template <>
+    real_t MyMeasurementVector::expected_measurement
+    <MyStateVector, DynamicPressure, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+        return 0.5 * 1.225 * state.get_field<Velocity>().squaredNorm();
+    }
+
+    template <> template <>
+    UKF::FieldVector MyMeasurementVector::expected_measurement
+    <MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state, const UKF::Vector<3>& input) {
+        return state.get_field<Attitude>() * UKF::FieldVector(0.45, 0, 0) + input;
+    }
 }
 
 TEST(FixedMeasurementVectorTest, SigmaPointGeneration) {
@@ -219,7 +231,7 @@ TEST(FixedMeasurementVectorTest, SigmaPointGeneration) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points, target_sigma_points;
 
@@ -272,7 +284,7 @@ TEST(FixedMeasurementVectorTest, SigmaPointGenerationWithInput) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points, target_sigma_points;
 
@@ -351,7 +363,7 @@ TEST(FixedMeasurementVectorTest, SigmaPointDeltas) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
         test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
@@ -414,7 +426,7 @@ TEST(FixedMeasurementVectorTest, Innovation) {
     covariance.diagonal() << 1e-9, 1e-9, 1e-9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
         test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);
@@ -445,7 +457,7 @@ TEST(FixedMeasurementVectorTest, SigmaPointCovariance) {
     covariance.diagonal() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
 
     MyStateVector::SigmaPointDistribution sigma_points = test_state.calculate_sigma_point_distribution((covariance *
-        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>)).llt().matrixL());
+        (MyStateVector::covariance_size() + UKF::Parameters::Lambda<MyStateVector>::value())).llt().matrixL());
 
     MyMeasurementVector::SigmaPointDistribution<MyStateVector> measurement_sigma_points =
         test_measurement.calculate_sigma_point_distribution<MyStateVector>(sigma_points);

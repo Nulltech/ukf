@@ -24,39 +24,54 @@ using MyStateVector = UKF::StateVector<
     UKF::Field<AngularVelocity, UKF::Vector<3>>
 >;
 
-template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
+// specialization class is required
+// extra namespace is needed due to a possible g++ bug
+namespace UKF
+{
+    namespace Parameters
+    {
+        template<> struct AlphaSquared<MyStateVector> { static constexpr real_t value(){ return 1e-6; } };
+    }
+}
+
+// MOD
+//template <> constexpr real_t UKF::Parameters::AlphaSquared<MyStateVector> = 1e-6;
 
 /*
 State vector process model. One version takes body frame kinematic
 acceleration and angular acceleration as inputs, the other doesn't (assumes
 zero accelerations).
 */
-template <> template <>
-MyStateVector MyStateVector::derivative<UKF::Vector<3>, UKF::Vector<3>>(
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) const {
-    MyStateVector temp;
-    
-    /* Position derivative. */
-    temp.set_field<Position>(get_field<Velocity>());
 
-    /* Velocity derivative. */
-    temp.set_field<Velocity>(get_field<Attitude>().conjugate() * acceleration);
+namespace UKF
+{
+    template <> template <>
+    MyStateVector MyStateVector::derivative<UKF::Vector<3>, UKF::Vector<3>>(
+            const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) const {
+        MyStateVector temp;
+        
+        /* Position derivative. */
+        temp.set_field<Position>(get_field<Velocity>());
 
-    /* Attitude derivative. */
-    UKF::Quaternion temp_q;
-    temp_q.vec() = get_field<AngularVelocity>();
-    temp_q.w() = 0;
-    temp.set_field<Attitude>(temp_q);
+        /* Velocity derivative. */
+        temp.set_field<Velocity>(get_field<Attitude>().conjugate() * acceleration);
 
-    /* Angular velocity derivative. */
-    temp.set_field<AngularVelocity>(angular_acceleration);
+        /* Attitude derivative. */
+        UKF::Quaternion temp_q;
+        temp_q.vec() = get_field<AngularVelocity>();
+        temp_q.w() = 0;
+        temp.set_field<Attitude>(temp_q);
 
-    return temp;
-}
+        /* Angular velocity derivative. */
+        temp.set_field<AngularVelocity>(angular_acceleration);
 
-template <> template <>
-MyStateVector MyStateVector::derivative<>() const {
-    return derivative(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(0, 0, 0));
+        return temp;
+    }
+
+    template <> template <>
+    MyStateVector MyStateVector::derivative<>() const {
+        return derivative(UKF::Vector<3>(0, 0, 0), UKF::Vector<3>(0, 0, 0));
+    }
 }
 
 /* Set up measurement vector class. */
@@ -86,34 +101,40 @@ using MyCore = UKF::Core<
 Define measurement model to be used in tests. NOTE: These are just for
 testing, don't expect them to make any physical sense whatsoever.
 */
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, GPS_Position>(const MyStateVector& state) {
-    return state.get_field<Position>();
-}
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, GPS_Velocity>(const MyStateVector& state) {
-    return state.get_field<Velocity>();
-}
+// specialization class is required
+// extra namespace is needed due to a possible g++ bug
+namespace UKF
+{
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, GPS_Position>(const MyStateVector& state) {
+        return state.get_field<Position>();
+    }
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Accelerometer>(const MyStateVector& state) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
-}
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, GPS_Velocity>(const MyStateVector& state) {
+        return state.get_field<Velocity>();
+    }
 
-template <> template <>
-UKF::FieldVector MyMeasurementVector::expected_measurement
-<MyStateVector, Magnetometer>(const MyStateVector& state) {
-    return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
-}
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Accelerometer>(const MyStateVector& state) {
+        return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8);
+    }
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Gyroscope>(const MyStateVector& state) {
-    return state.get_field<AngularVelocity>();
+    template <> template <>
+    UKF::FieldVector MyMeasurementVector::expected_measurement
+    <MyStateVector, Magnetometer>(const MyStateVector& state) {
+        return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
+    }
+
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Gyroscope>(const MyStateVector& state) {
+        return state.get_field<AngularVelocity>();
+    }
 }
 
 /*
@@ -122,39 +143,45 @@ acceleration and angular acceleration as inputs. Note that in reality, the
 inputs would probably be a control vector and the accelerations would be
 calculated using the state vector and a dynamics model.
 */
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, GPS_Position>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
-    return state.get_field<Position>();
-}
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, GPS_Velocity>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
-    return state.get_field<Velocity>();
-}
+// specialization class is required
+// extra namespace is needed due to a possible g++ bug
+namespace UKF
+{
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, GPS_Position>(const MyStateVector& state,
+            const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        return state.get_field<Position>();
+    }
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
-    return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + acceleration;
-}
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, GPS_Velocity>(const MyStateVector& state,
+            const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        return state.get_field<Velocity>();
+    }
 
-template <> template <>
-UKF::FieldVector MyMeasurementVector::expected_measurement
-<MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
-    return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
-}
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Accelerometer, UKF::Vector<3>>(const MyStateVector& state,
+            const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        return state.get_field<Attitude>() * UKF::Vector<3>(0, 0, -9.8) + acceleration;
+    }
 
-template <> template <>
-UKF::Vector<3> MyMeasurementVector::expected_measurement
-<MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state,
-        const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
-    return state.get_field<AngularVelocity>();
+    template <> template <>
+    UKF::FieldVector MyMeasurementVector::expected_measurement
+    <MyStateVector, Magnetometer, UKF::Vector<3>>(const MyStateVector& state,
+            const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        return state.get_field<Attitude>() * UKF::FieldVector(1, 0, 0);
+    }
+
+    template <> template <>
+    UKF::Vector<3> MyMeasurementVector::expected_measurement
+    <MyStateVector, Gyroscope, UKF::Vector<3>>(const MyStateVector& state,
+            const UKF::Vector<3>& acceleration, const UKF::Vector<3>& angular_acceleration) {
+        return state.get_field<AngularVelocity>();
+    }
 }
 
 /* Set the measurement covariance vector. */

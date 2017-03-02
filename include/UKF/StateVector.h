@@ -31,6 +31,8 @@ SOFTWARE.
 #include "UKF/Types.h"
 #include "UKF/Integrator.h"
 
+#include "c++11ext.h"
+
 namespace UKF {
 
     namespace Detail {
@@ -44,14 +46,20 @@ namespace UKF {
     don't have a MaxRowsAtCompileTime member, or need a custom size for some
     reason (eg. the Eigen Quaternion classes).
     */
-    template <typename T>
-    constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
+    
+    // MOD
+    //template <typename T>
+    //constexpr std::size_t StateVectorDimension = T::MaxRowsAtCompileTime;
 
-    template <>
-    constexpr std::size_t StateVectorDimension<Quaternion> = 4;
+    //template <>
+    //constexpr std::size_t StateVectorDimension<Quaternion> = 4;
 
-    template <>
-    constexpr std::size_t StateVectorDimension<real_t> = 1;
+    //template <>
+    //constexpr std::size_t StateVectorDimension<real_t> = 1;
+
+    template <typename T> struct StateVectorDimension { static constexpr std::size_t value(){ return T::MaxRowsAtCompileTime; } };
+    template<> struct StateVectorDimension<Quaternion> { static constexpr std::size_t value(){ return 4; } };
+    template<> struct StateVectorDimension<real_t> { static constexpr std::size_t value(){ return 1; } };
 
     /*
     This variable template defines the dimensionality of a particular
@@ -63,11 +71,16 @@ namespace UKF {
     representation in the covariance matrix is different to its
     representation in the state vector.
     */
-    template <typename T>
-    constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
 
-    template <>
-    constexpr std::size_t CovarianceDimension<Quaternion> = 3;
+    // MOD
+    //template <typename T>
+    //constexpr std::size_t CovarianceDimension = StateVectorDimension<T>;
+
+    //template <>
+    //constexpr std::size_t CovarianceDimension<Quaternion> = 3;
+
+    template<typename T> struct CovarianceDimension { static constexpr std::size_t value() { return StateVectorDimension<T>::value(); } };
+    template<> struct CovarianceDimension<Quaternion> { static constexpr std::size_t value(){ return 3; } };
 
     template <typename T>
     constexpr T adder(T v) {
@@ -85,7 +98,7 @@ namespace UKF {
     */
     template <typename... Fields>
     constexpr std::size_t get_composite_vector_dimension() {
-        return adder(StateVectorDimension<Fields>...);
+        return adder(StateVectorDimension<Fields>::value()...);
     }
 
     /*
@@ -94,7 +107,7 @@ namespace UKF {
     */
     template <typename... Fields>
     constexpr std::size_t get_covariance_dimension() {
-        return adder(CovarianceDimension<Fields>...);
+        return adder(CovarianceDimension<Fields>::value()...);
     }
 
     /*
@@ -109,7 +122,7 @@ namespace UKF {
     template <std::size_t Offset, typename T1, typename T2, typename... Fields>
     constexpr std::size_t get_field_offset(int Key) {
         return Key == T1::key ? Offset : get_field_offset<
-            Offset + StateVectorDimension<typename T1::type>, T2, Fields...>(Key);
+            Offset + StateVectorDimension<typename T1::type>::value(), T2, Fields...>(Key);
     }
 
     /* Do the same as above, but for the covariance matrix. */
@@ -121,7 +134,7 @@ namespace UKF {
     template <std::size_t Offset, typename T1, typename T2, typename... Fields>
     constexpr std::size_t get_field_covariance_offset(int Key) {
         return Key == T1::key ? Offset : get_field_covariance_offset<
-            Offset + CovarianceDimension<typename T1::type>, T2, Fields...>(Key);
+            Offset + CovarianceDimension<typename T1::type>::value(), T2, Fields...>(Key);
     }
 
     /* Get the order of the specified key within the field pack. */
@@ -163,7 +176,7 @@ namespace UKF {
     };
 
     template <typename T>
-    inline T convert_from_segment(const Vector<StateVectorDimension<T>>& state) {
+    inline T convert_from_segment(const Vector<StateVectorDimension<T>::value()>& state) {
         return static_cast<T>(state);
     }
 
@@ -178,23 +191,23 @@ namespace UKF {
     */
     template <typename T>
     constexpr std::size_t get_field_size(int Key) {
-        return Key == T::key ? StateVectorDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
+        return Key == T::key ? StateVectorDimension<typename T::type>::value() : std::numeric_limits<std::size_t>::max();
     }
 
     template <typename T1, typename T2, typename... Fields>
     constexpr std::size_t get_field_size(int Key) {
-        return Key == T1::key ? StateVectorDimension<typename T1::type> : get_field_size<T2, Fields...>(Key);
+        return Key == T1::key ? StateVectorDimension<typename T1::type>::value() : get_field_size<T2, Fields...>(Key);
     }
 
     /* Do the same as above, but for the covariance matrix. */
     template <typename T>
     constexpr std::size_t get_field_covariance_size(int Key) {
-        return Key == T::key ? CovarianceDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
+        return Key == T::key ? CovarianceDimension<typename T::type>::value() : std::numeric_limits<std::size_t>::max();
     }
 
     template <typename T1, typename T2, typename... Fields>
     constexpr std::size_t get_field_covariance_size(int Key) {
-        return Key == T1::key ? CovarianceDimension<typename T1::type> : get_field_covariance_size<T2, Fields...>(Key);
+        return Key == T1::key ? CovarianceDimension<typename T1::type>::value() : get_field_covariance_size<T2, Fields...>(Key);
     }
 
     /* Function for creating an array initialised to a specific value. */
@@ -231,11 +244,37 @@ namespace UKF {
     Space Models and Change Point Detection" by Ryan Tuner (2011) provide a
     more stable filter.
     */
-    template <typename T> constexpr real_t AlphaSquared = 1.0;
-    template <typename T> constexpr real_t Beta = 0.0;
-    template <typename T> constexpr real_t Kappa = 3.0;
-    template <typename T> constexpr real_t Lambda =
-        AlphaSquared<T> * (T::covariance_size() + Kappa<T>) - T::covariance_size();
+
+    // MOD
+    // template <typename T> constexpr real_t AlphaSquared = 1.0;
+    // template <typename T> constexpr real_t Beta = 0.0;
+    // template <typename T> constexpr real_t Kappa = 3.0;
+    // template <typename T> constexpr real_t Lambda =
+    //     AlphaSquared<T> * (T::covariance_size() + Kappa<T>) - T::covariance_size();
+
+    template <typename T>
+    struct AlphaSquared
+    {
+        static constexpr real_t value() { return 1.0; }
+    };
+
+    template <typename T>
+    struct Beta
+    {
+        static constexpr real_t value() { return 0.0; }
+    };
+
+    template <typename T>
+    struct Kappa
+    {
+        static constexpr real_t value() { return 3.0; }
+    };
+
+    template <typename T>
+    struct Lambda
+    {
+        static constexpr real_t value() { return AlphaSquared<T>::value() * (T::covariance_size() + Kappa<T>::value()) - T::covariance_size(); }
+    };
 
     /*
     Definitions for parameters used to calculated MRP vectors.
@@ -251,17 +290,74 @@ namespace UKF {
     filter iteration; if it is, setting the MRP_A parameter to 1.0 moves the
     singularity to 360 degrees.
     */
-    template <typename T> constexpr real_t MRP_A = 0.0;
-    template <typename T> constexpr real_t MRP_F = 2.0 * (MRP_A<T> + 1.0);
+
+    // MOD
+    //template <typename T> constexpr real_t MRP_A = 0.0;
+    //template <typename T> constexpr real_t MRP_F = 2.0 * (MRP_A<T> + 1.0);
+
+    template <typename T>
+    struct MRP_A
+    {
+        static constexpr real_t value() { return 0.0; }
+    };
+
+    template <typename T>
+    struct MRP_F
+    {
+        static constexpr real_t value() { return 2.0 * (MRP_A<T>::value() + 1.0); }
+    };
+
 
     /*
     Definitions for sigma point weights. The naming convention follows that used
     in in the paper given above.
     */
-    template <typename T> constexpr real_t Sigma_WM0 = Lambda<T>/(T::covariance_size() + Lambda<T>);
-    template <typename T> constexpr real_t Sigma_WC0 = Sigma_WM0<T> + (1.0 - AlphaSquared<T> + Beta<T>);
-    template <typename T> constexpr real_t Sigma_WMI = 1.0 / (2.0 * (T::covariance_size() + Lambda<T>));
-    template <typename T> constexpr real_t Sigma_WCI = Sigma_WMI<T>;
+
+    // MOD
+    //template <typename T> constexpr real_t Sigma_WM0 = Lambda<T>/(T::covariance_size() + Lambda<T>);
+    //template <typename T> constexpr real_t Sigma_WC0 = Sigma_WM0<T> + (1.0 - AlphaSquared<T> + Beta<T>);
+    //template <typename T> constexpr real_t Sigma_WMI = 1.0 / (2.0 * (T::covariance_size() + Lambda<T>));
+    //template <typename T> constexpr real_t Sigma_WCI = Sigma_WMI<T>;
+
+    template <typename T>
+    class Sigma_WM0
+    {
+        public:
+            static constexpr real_t value()
+            {
+                return Lambda<T>::value()/(T::covariance_size() + Lambda<T>::value());
+            }
+    };
+
+    template <typename T>
+    class Sigma_WC0
+    {
+        public:
+            static constexpr real_t value()
+            {
+                return Sigma_WM0<T>::value() + (1.0 - AlphaSquared<T>::value() + Beta<T>::value());
+            }
+    };
+
+    template <typename T>
+    class Sigma_WMI
+    {
+        public:
+            static constexpr real_t value()
+            {
+                return 1.0 / (2.0 * (T::covariance_size() + Lambda<T>::value()));
+            }
+    };
+
+    template <typename T>
+    class Sigma_WCI
+    {
+        public:
+            static constexpr real_t value()
+            {
+                return Sigma_WMI<T>::value();
+            }
+    };   
 
     }
 
@@ -271,11 +367,11 @@ namespace UKF {
         template <typename T>
         inline Quaternion rotation_vector_to_quaternion(const Vector<3>& r) {
             real_t x_2 = r.squaredNorm();
-            real_t d_q_w = (-UKF::Parameters::MRP_A<T> * x_2 + UKF::Parameters::MRP_F<T>
-                * std::sqrt(x_2 * (real_t(1.0) - UKF::Parameters::MRP_A<T>*UKF::Parameters::MRP_A<T>)
-                + UKF::Parameters::MRP_F<T> * UKF::Parameters::MRP_F<T>))
-                / (UKF::Parameters::MRP_F<T> * UKF::Parameters::MRP_F<T> + x_2);
-            Vector<3> d_q_xyz = r * (d_q_w + UKF::Parameters::MRP_A<T>) * (real_t(1.0) / UKF::Parameters::MRP_F<T>);
+            real_t d_q_w = (-UKF::Parameters::MRP_A<T>::value() * x_2 + UKF::Parameters::MRP_F<T>::value()
+                * std::sqrt(x_2 * (real_t(1.0) - UKF::Parameters::MRP_A<T>::value()*UKF::Parameters::MRP_A<T>::value())
+                + UKF::Parameters::MRP_F<T>::value() * UKF::Parameters::MRP_F<T>::value()))
+                / (UKF::Parameters::MRP_F<T>::value() * UKF::Parameters::MRP_F<T>::value() + x_2);
+            Vector<3> d_q_xyz = r * (d_q_w + UKF::Parameters::MRP_A<T>::value()) * (real_t(1.0) / UKF::Parameters::MRP_F<T>::value());
             Quaternion d_q;
             d_q.vec() = d_q_xyz;
             d_q.w() = d_q_w;
@@ -396,9 +492,9 @@ public:
         /* Calculate the covariance using equation 64 from the Kraft paper. */
         cov = CovarianceMatrix::Zero();
         for(std::size_t i = 1; i < num_sigma(); i++) {
-            cov.noalias() += Parameters::Sigma_WCI<StateVector> * (w_prime.col(i) * w_prime.col(i).transpose());
+            cov.noalias() += Parameters::Sigma_WCI<StateVector>::value() * (w_prime.col(i) * w_prime.col(i).transpose());
         }
-        cov.noalias() += Parameters::Sigma_WC0<StateVector> * (w_prime.col(0) * w_prime.col(0).transpose());
+        cov.noalias() += Parameters::Sigma_WC0<StateVector>::value() * (w_prime.col(0) * w_prime.col(0).transpose());
 
         return cov;
     }
@@ -440,12 +536,12 @@ public:
 private:
     /* Private functions for creating a sigma point distribution. */
     template <typename T>
-    static Matrix<Detail::StateVectorDimension<T>, num_sigma()> perturb_state(
-            const T& state, const Matrix<Detail::CovarianceDimension<T>, covariance_size()>& cov) {
-        Matrix<Detail::StateVectorDimension<T>, num_sigma()> temp;
+    static Matrix<Detail::StateVectorDimension<T>::value(), num_sigma()> perturb_state(const T& state, const Matrix<Detail::CovarianceDimension<T>::value(), covariance_size()>& cov) 
+    {
+        Matrix<Detail::StateVectorDimension<T>::value(), num_sigma()> temp;
         temp.col(0) = state;
-        temp.template block<Detail::StateVectorDimension<T>, covariance_size()>(0, 1) = cov.colwise() + state;
-        temp.template block<Detail::StateVectorDimension<T>, covariance_size()>(0, covariance_size()+1) =
+        temp.template block<Detail::StateVectorDimension<T>::value(), covariance_size()>(0, 1) = cov.colwise() + state;
+        temp.template block<Detail::StateVectorDimension<T>::value(), covariance_size()>(0, covariance_size()+1) =
             -(cov.colwise() - state);
 
         return temp;
@@ -470,12 +566,12 @@ private:
 
         Array<1, covariance_size()> x_2 = cov.colwise().squaredNorm();
         Array<1, covariance_size()> err_w =
-            (-Parameters::MRP_A<StateVector> * x_2 + Parameters::MRP_F<StateVector>
-                * (x_2 * (real_t(1.0) - Parameters::MRP_A<StateVector>*Parameters::MRP_A<StateVector>)
-                + Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector>).sqrt())
-            / (Parameters::MRP_F<StateVector> * Parameters::MRP_F<StateVector> + x_2);
-        Array<3, covariance_size()> err_xyz = cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>)
-            * (real_t(1.0) / Parameters::MRP_F<StateVector>);
+            (-Parameters::MRP_A<StateVector>::value() * x_2 + Parameters::MRP_F<StateVector>::value()
+                * (x_2 * (real_t(1.0) - Parameters::MRP_A<StateVector>::value()*Parameters::MRP_A<StateVector>::value())
+                + Parameters::MRP_F<StateVector>::value() * Parameters::MRP_F<StateVector>::value()).sqrt())
+            / (Parameters::MRP_F<StateVector>::value() * Parameters::MRP_F<StateVector>::value() + x_2);
+        Array<3, covariance_size()> err_xyz = cov.array().rowwise() * (err_w + Parameters::MRP_A<StateVector>::value())
+            * (real_t(1.0) / Parameters::MRP_F<StateVector>::value());
 
         Quaternion temp_q;
         for(std::size_t i = 0; i < covariance_size(); i++) {
@@ -492,10 +588,15 @@ private:
     }
 
     template <typename T>
-    void calculate_field_sigmas(const CovarianceMatrix& S, SigmaPointDistribution& X) const {
-        X.template block<Detail::StateVectorDimension<typename T::type>, num_sigma()>(
-            Detail::get_field_offset<0, Fields...>(T::key), 0) = perturb_state(get_field<T::key>(),
-                S.template block<Detail::CovarianceDimension<typename T::type>, covariance_size()>(
+    void calculate_field_sigmas(const CovarianceMatrix& S, SigmaPointDistribution& X) const 
+    {
+        // FIXME: 
+        // gcc 4.9 doesn't to handle correctly Detail::StateVectorDimension<typename T::type>::value()
+        // inside perturb_state
+
+        X.template block<Detail::StateVectorDimension<typename T::type>::value(), num_sigma()>(
+            Detail::get_field_offset<0, Fields...>(T::key), 0) = perturb_state(get_field<T::key>(), 
+                S.template block<Detail::CovarianceDimension<typename T::type>::value(), covariance_size()>(
                     Detail::get_field_covariance_offset<0, Fields...>(T::key), 0));
     }
 
@@ -518,14 +619,14 @@ private:
     The following algorithm implements equation (41d) from that paper.
     */
     template <typename T>
-    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>, num_sigma()>& sigma, const T& field) {
-        return Parameters::Sigma_WMI<StateVector>*sigma.template block<Detail::StateVectorDimension<T>, num_sigma()-1>(
-            0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
+    static T sigma_point_mean(const Matrix<Detail::StateVectorDimension<T>::value(), num_sigma()>& sigma, const T& field) {
+        return Parameters::Sigma_WMI<StateVector>::value()*sigma.template block<Detail::StateVectorDimension<T>::value(), num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>::value()*sigma.col(0);
     }
 
     static real_t sigma_point_mean(const Matrix<1, num_sigma()>& sigma, const real_t& field) {
-        return Parameters::Sigma_WMI<StateVector>*sigma.template segment<num_sigma()-1>(1).sum()
-            + Parameters::Sigma_WM0<StateVector>*sigma(0);
+        return Parameters::Sigma_WMI<StateVector>::value()*sigma.template segment<num_sigma()-1>(1).sum()
+            + Parameters::Sigma_WM0<StateVector>::value()*sigma(0);
     }
 
     /*
@@ -534,17 +635,17 @@ private:
     mentioned above for details.
     */
     static Vector<4> sigma_point_mean(const Matrix<4, num_sigma()>& sigma, const Quaternion& field) {
-        Vector<4> temp = Parameters::Sigma_WMI<StateVector>*sigma.template block<4, num_sigma()-1>(
-            0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>*sigma.col(0);
+        Vector<4> temp = Parameters::Sigma_WMI<StateVector>::value()*sigma.template block<4, num_sigma()-1>(
+            0, 1).rowwise().sum() + Parameters::Sigma_WM0<StateVector>::value()*sigma.col(0);
         Quaternion temp_q = Quaternion(temp).normalized();
         return Vector<4>(temp_q.x(), temp_q.y(), temp_q.z(), temp_q.w());
     }
 
     template <typename T>
     static void calculate_field_mean(const SigmaPointDistribution& X, StateVector& mean) {
-        mean.template segment<Detail::StateVectorDimension<typename T::type>>(
+        mean.template segment<Detail::StateVectorDimension<typename T::type>::value()>(
             Detail::get_field_offset<0, Fields...>(T::key)) << sigma_point_mean(
-                X.template block<Detail::StateVectorDimension<typename T::type>, num_sigma()>(
+                X.template block<Detail::StateVectorDimension<typename T::type>::value(), num_sigma()>(
                     Detail::get_field_offset<0, Fields...>(T::key), 0), typename T::type());
     }
 
@@ -559,8 +660,8 @@ private:
     point and the mean.
     */
     template <typename T>
-    static Matrix<Detail::CovarianceDimension<T>, num_sigma()> sigma_point_deltas(
-            const T& mean, const Matrix<Detail::StateVectorDimension<T>, num_sigma()>& X) {
+    static Matrix<Detail::CovarianceDimension<T>::value(), num_sigma()> sigma_point_deltas(
+            const T& mean, const Matrix<Detail::StateVectorDimension<T>::value(), num_sigma()>& X) {
         return X.colwise() - mean;
     }
 
@@ -577,9 +678,9 @@ private:
         */
         for(std::size_t i = 0; i < num_sigma(); i++) {
             Quaternion delta_q = Quaternion(X.col(i)) * mean.conjugate();
-            temp.col(i) = Parameters::MRP_F<StateVector> * delta_q.vec() /
-                (std::abs(Parameters::MRP_A<StateVector> + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
-                    Parameters::MRP_A<StateVector> + delta_q.w() : std::numeric_limits<real_t>::epsilon());
+            temp.col(i) = Parameters::MRP_F<StateVector>::value() * delta_q.vec() /
+                (std::abs(Parameters::MRP_A<StateVector>::value() + delta_q.w()) > std::numeric_limits<real_t>::epsilon() ?
+                    Parameters::MRP_A<StateVector>::value() + delta_q.w() : std::numeric_limits<real_t>::epsilon());
         }
 
         return temp;
@@ -587,9 +688,9 @@ private:
 
     template <typename T>
     void calculate_field_deltas(const SigmaPointDistribution& X, SigmaPointDeltas& w_prime) const {
-        w_prime.template block<Detail::CovarianceDimension<typename T::type>, num_sigma()>(
+        w_prime.template block<Detail::CovarianceDimension<typename T::type>::value(), num_sigma()>(
             Detail::get_field_covariance_offset<0, Fields...>(T::key), 0) = sigma_point_deltas(
-                get_field<T::key>(), X.template block<Detail::StateVectorDimension<typename T::type>, num_sigma()>(
+                get_field<T::key>(), X.template block<Detail::StateVectorDimension<typename T::type>::value(), num_sigma()>(
                     Detail::get_field_offset<0, Fields...>(T::key), 0));
     }
 
@@ -604,7 +705,7 @@ private:
     field.
     */
     template <typename T>
-    static T update_field(const T& state, const Vector<Detail::CovarianceDimension<T>>& delta) {
+    static T update_field(const T& state, const Vector<Detail::CovarianceDimension<T>::value()>& delta) {
         return state + delta;
     }
 
